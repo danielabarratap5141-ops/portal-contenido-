@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite no soporta enums nativos en Prisma: estos campos se guardan como
+// String y se validan/tipan desde la app (ver lib/types.ts).
+// ProjectType: CLIENT | OWN
+// SocialNetwork: INSTAGRAM | TIKTOK | FACEBOOK | X | YOUTUBE | LINKEDIN | OTHER
+// ContentFormat: REEL | CAROUSEL | POST | STORY
+// ContentStatus: IDEA | DESIGN | COPY_READY | REVIEW | SCHEDULED | PUBLISHED
+// TaskPriority: LOW | MEDIUM | HIGH
+// TaskStatus: TODO | IN_PROGRESS | DONE
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  type      String   @default("OWN")
+  color     String   @default("#6366f1")
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contentItems ContentItem[]
+  tasks        Task[]
+  ideas        Idea[]
+}
+
+model ContentItem {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title        String
+  publishDate  DateTime
+  network      String   @default("INSTAGRAM")
+  format       String   @default("POST")
+  status       String   @default("IDEA")
+  copyText     String?
+  designNotes  String?
+  publishedUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([publishDate])
+}
+
+model Task {
+  id        String    @id @default(cuid())
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  title     String
+  dueDate   DateTime?
+  priority  String    @default("MEDIUM")
+  status    String    @default("TODO")
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
+
+model Idea {
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  description     String
+  suggestedFormat String?
+  tags            String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([projectId])
+}
